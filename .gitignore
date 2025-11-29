@@ -7,3 +7,7 @@ __pycache__/
 .idea/
 .vscode/
 .DS_Store
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
