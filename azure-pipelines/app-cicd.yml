@@ -1,0 +1,52 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - api/**
+      - Dockerfile
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  PROJECT_ID: 'test-sample-api-479708'
+  REGION: 'asia-south1'
+  REPO: 'hello-api-repo'
+  SERVICE: 'hello-api'
+  IMAGE: '$(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(REPO)/$(SERVICE):$(Build.BuildId)'
+
+steps:
+- task: DownloadSecureFile@1
+  name: gcpKey
+  inputs:
+    secureFile: 'gcp-sa-key.json'
+
+- script: |
+    echo "Install gcloud and auth"
+    curl -sSL https://sdk.cloud.google.com | bash
+    source "$HOME/google-cloud-sdk/path.bash.inc"
+    gcloud auth activate-service-account --key-file $(gcpKey.secureFilePath)
+    gcloud config set project $(PROJECT_ID)
+    gcloud auth configure-docker $(REGION)-docker.pkg.dev -q
+  displayName: 'GCP auth & Docker config'
+
+- script: |
+    echo "Build Docker"
+    docker build -t $(IMAGE) .
+  displayName: 'Docker build'
+
+- script: |
+    echo "Push image"
+    docker push $(IMAGE)
+  displayName: 'Docker push'
+
+- script: |
+    echo "Deploy to Cloud Run"
+    gcloud run deploy $(SERVICE) \
+      --image $(IMAGE) \
+      --region $(REGION) \
+      --allow-unauthenticated \
+      --platform managed
+  displayName: 'Cloud Run deploy'
