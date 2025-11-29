@@ -33,12 +33,15 @@ Endpoints:
 ### 1. Install dependencies
 ```bash
 pip install -r api/requirements.txt
+```
 
-2. Start FastAPI with Uvicorn
-
+### 2. Start FastAPI with Uvicorn
+```bash
 uvicorn app.main:app --reload --port 8000
+```
+### 3. Test with Postman
 
-3. Test with Postman
+GET http://localhost:8000/ → { "Allowed methods": "/health [GET], /hello [GET], /echo [POST]" }
 
 GET http://localhost:8000/health → { "status": "ok" }
 
@@ -46,47 +49,47 @@ GET http://localhost:8000/hello?name=Indranil → { "greeting": "Hello, Indranil
 
 POST http://localhost:8000/echo → body { "message": "hi" }
 
-🐳 Run with Docker
+## 🐳 Run with Docker
 
-1. Build image
-
+### 1. Build image
+```bash
 cd api
 docker build -t hello-api:local .
-
-2. Run container
-
+```
+### 2. Run container
+```bash
 docker run -d --name hello-api -p 8000:8000 hello-api:local
-
-3. Exec into container (optional)
-
+```
+### 3. Exec into container (optional)
+```bash
 docker exec -it hello-api /bin/sh
+```
+## ☁️ Deploy to Google Cloud Run
 
-☁️ Deploy to Google Cloud Run
-
-1. Enable services
-
+### 1. Enable services
+```bash
 gcloud services enable run.googleapis.com artifactregistry.googleapis.com
-
-2. Create Artifact Registry repo
-
+```
+### 2. Create Artifact Registry repo
+```bash
 gcloud artifacts repositories create hello-api-repo \
   --repository-format=docker \
   --location=asia-south1 \
   --description="Docker repo for Hello API"
-
-3. Build & push image
-
+```
+### 3. Build & push image
+```bash
 docker build -t asia-south1-docker.pkg.dev/<PROJECT_ID>/hello-api-repo/hello-api:latest .
 docker push asia-south1-docker.pkg.dev/<PROJECT_ID>/hello-api-repo/hello-api:latest
-
-4. Deploy to Cloud Run
-
+```
+### 4. Deploy to Cloud Run
+```bash
 gcloud run deploy hello-api \
   --image asia-south1-docker.pkg.dev/<PROJECT_ID>/hello-api-repo/hello-api:latest \
   --region asia-south1 \
   --allow-unauthenticated
-
-5. Test deployed service
+```
+### 5. Test deployed service
 
 Use the Cloud Run URL:
 
@@ -96,7 +99,7 @@ GET <SERVICE_URL>/hello?name=Indranil
 
 POST <SERVICE_URL>/echo
 
-📦 Infrastructure as Code (Terraform)
+## 📦 Infrastructure as Code (Terraform)
 
 Infra definitions are in terraform/.Run:
 
@@ -104,7 +107,7 @@ terraform init
 terraform plan -var-file=env.tfvars
 terraform apply -var-file=env.tfvars
 
-🔄 CI/CD with Azure DevOps
+## 🔄 CI/CD with Azure DevOps
 
 Infra pipeline: applies Terraform to provision GCP resources.
 
@@ -112,7 +115,7 @@ App pipeline: builds Docker image, pushes to Artifact Registry, deploys to Cloud
 
 Pipeline YAMLs are in azure-pipelines/.
 
-📝 Notes
+## 📝 Notes
 
 Default port is 8000 (mapped in Dockerfile).
 
