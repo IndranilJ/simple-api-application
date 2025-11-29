@@ -7,7 +7,7 @@ This project demonstrates end-to-end workflow: local dev → container → cloud
 
 ## 📁 Project Structure
 
-
+```bash
 SIMPLEAPIAPPLICATION/
  └── api/
   ├── app/
@@ -15,7 +15,7 @@ SIMPLEAPIAPPLICATION/
   ├── requirements.txt     # Python dependencies
   ├── Dockerfile           # Multi-stage Docker build
   └── .dockerignore        # Ignore unnecessary files in Docker build
-
+```
 
 ---
 
