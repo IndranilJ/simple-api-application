@@ -15,6 +15,7 @@ pipeline {
         stage('Clone Repo') {
             agent { label 'agent-python' }
             steps {
+                cleanWS()
                 git branch: 'master', url: 'https://github.com/IndranilJ/simple-api-application.git'
             }
         }
