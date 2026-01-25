@@ -11,3 +11,7 @@ __pycache__/
 .terraform.lock.hcl
 *.tfstate
 *.tfstate.backup
+htmlcov/
+.pytest_cache/
+.coverage
+coverage.*
