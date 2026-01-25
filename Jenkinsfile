@@ -15,7 +15,7 @@ pipeline {
         stage('Clone Repo') {
             agent { label 'agent-python' }
             steps {
-                git branch: 'master', credentialsId: 'admin-git-cred', url: 'https://github.com/IndranilJ/simple-api-application.git'
+                git branch: 'master', url: 'https://github.com/IndranilJ/simple-api-application.git'
             }
         }
 
