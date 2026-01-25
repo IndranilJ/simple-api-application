@@ -1,5 +1,6 @@
 pipeline {
-    agent none
+    // agent none
+    agent { label 'agent-python' }
 
     environment {
         SONAR_HOST_URL = 'http://sonarqube:9000'
@@ -14,7 +15,7 @@ pipeline {
         stage('Clone Repo') {
             agent { label 'agent-python' }
             steps {
-                git branch: 'main', credentialsId: 'admin-git-cred', url: 'https://github.com/IndranilJ/simple-api-application.git'
+                git branch: 'master', credentialsId: 'admin-git-cred', url: 'https://github.com/IndranilJ/simple-api-application.git'
             }
         }
 
