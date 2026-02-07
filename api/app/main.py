@@ -1,27 +1,27 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
+from app.api import notes
+from app.db import init_db
 
-app = FastAPI(title="Hello API", version="1.0.0")
+# Create the main application
+app = FastAPI(title="Synapse", version="1.0.0")
 
-class Echo(BaseModel):
-    message: str
+# Allow the frontend to talk to us
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.on_event("startup")
+async def on_startup():
+    await init_db()
+
+# Include the "notes" department (router)
+app.include_router(notes.router)
 
 @app.get("/")
-def desc():
-    return {"Allowed methods": "/health [GET], /hello [GET], /indra [GET], /echo [POST]"}
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
-@app.get("/hello")
-def hello(name: str = "world"):
-    return {"greeting": f"Hello, {name}!"}
-
-@app.get("/indra")
-def indra():
-    return {"message": "what do you want from me?"}
-
-@app.post("/echo")
-def echo(payload: Echo):
-    return {"you_said": payload.message}
+def root():
+    return {"message": "Welcome to Synapse: Your Digital Second Brain"}
