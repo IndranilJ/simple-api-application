@@ -8,7 +8,7 @@ class Echo(BaseModel):
 
 @app.get("/")
 def desc():
-    return {"Allowed methods": "/health [GET], /hello [GET], /echo [POST]"}
+    return {"Allowed methods": "/health [GET], /hello [GET], /indra [GET], /echo [POST]"}
 
 @app.get("/health")
 def health():
@@ -17,6 +17,10 @@ def health():
 @app.get("/hello")
 def hello(name: str = "world"):
     return {"greeting": f"Hello, {name}!"}
+
+@app.get("/indra")
+def indra():
+    return {"message": "what do you want from me?"}
 
 @app.post("/echo")
 def echo(payload: Echo):
