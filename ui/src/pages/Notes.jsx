@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import '../App.css'; // Reuse existing styles
 
 const Notes = () => {
+    const { isLoading: authLoading } = useAuth();
     const [notes, setNotes] = useState([]);
     const [allTags, setAllTags] = useState([]);
     const [title, setTitle] = useState('');
@@ -18,9 +20,12 @@ const Notes = () => {
     const [editTags, setEditTags] = useState('');
 
     useEffect(() => {
-        fetchNotes();
-        fetchAllTags();
-    }, [searchQuery, selectedTag]);
+        // Only fetch notes if auth is not loading
+        if (!authLoading) {
+            fetchNotes();
+            fetchAllTags();
+        }
+    }, [searchQuery, selectedTag, authLoading]);
 
     const fetchNotes = async () => {
         try {
@@ -122,6 +127,15 @@ const Notes = () => {
     const clearFilter = () => {
         setSelectedTag(null);
     };
+
+    // Show loading state while auth is initializing
+    if (authLoading) {
+        return (
+            <div className="container" style={{ paddingTop: '2rem', textAlign: 'center' }}>
+                <p>Loading...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="container" style={{ paddingTop: '2rem' }}>
