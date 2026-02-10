@@ -9,6 +9,13 @@
     background: rgba(15, 23, 42, 0.8);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Light mode navbar */
+:root[data-theme="light"] .navbar {
+    background: rgba(255, 255, 255, 0.9);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .navbar-content {
@@ -96,6 +103,34 @@
 .logout-button:hover {
     background: rgba(255, 255, 255, 0.15);
     border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Light mode navbar text and buttons */
+:root[data-theme="light"] .navbar-brand {
+    color: #1e293b;
+}
+
+:root[data-theme="light"] .nav-link {
+    color: rgba(30, 41, 59, 0.8);
+}
+
+:root[data-theme="light"] .nav-link:hover {
+    color: #1e293b;
+}
+
+:root[data-theme="light"] .user-name {
+    color: rgba(30, 41, 59, 0.9);
+}
+
+:root[data-theme="light"] .logout-button {
+    background: rgba(30, 41, 59, 0.1);
+    border: 1px solid rgba(30, 41, 59, 0.2);
+    color: rgba(30, 41, 59, 0.9);
+}
+
+:root[data-theme="light"] .logout-button:hover {
+    background: rgba(30, 41, 59, 0.15);
+    border-color: rgba(30, 41, 59, 0.3);
 }
 
 /* Add padding to body to account for fixed navbar */

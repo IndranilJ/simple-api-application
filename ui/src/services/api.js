@@ -28,8 +28,11 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        // If error is 401 and we haven't retried yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // Skip interceptor logic for auth endpoints (login, register, refresh)
+        const isAuthEndpoint = originalRequest.url?.includes('/auth/');
+
+        // If error is 401 and we haven't retried yet, and it's NOT an auth endpoint
+        if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
             originalRequest._retry = true;
 
             try {
