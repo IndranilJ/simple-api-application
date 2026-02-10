@@ -6,10 +6,15 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
+      // Proxy all API routes to backend
       '/notes': {
-        target: 'http://127.0.0.1:8001',
+        target: 'http://127.0.0.1:8004',
         changeOrigin: true,
-      }
+      },
+      '/tags': {
+        target: 'http://127.0.0.1:8004',
+        changeOrigin: true,
+      },
     }
   }
 })

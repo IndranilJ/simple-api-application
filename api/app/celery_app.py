@@ -1,13 +1,15 @@
 from celery import Celery
+import os
 
-# 1. Create the Celery App
-# "synapse" is the name of our worker.
-# broker="..." tells Celery where the Redis Ticket Wheel is.
-# backend="..." tells Celery where to store the results (also Redis).
+# Get Redis URL from environment or use default
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+# Create the Celery App
 celery_app = Celery(
     "synapse",
-    broker="redis://localhost:6379/0",
-    backend="redis://localhost:6379/0"
+    broker=REDIS_URL,
+    backend=REDIS_URL,
+    include=["app.tasks"]
 )
 
 # 2. Configure Settings

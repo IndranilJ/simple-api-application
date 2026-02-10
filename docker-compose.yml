@@ -1,7 +1,100 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: synapse_postgres
+    environment:
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: synapse123
+      POSTGRES_DB: synapse_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U synapse" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - synapse_network
+
+  # Redis for Celery
   redis:
     image: redis:alpine
+    container_name: synapse_redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - synapse_network
+
+  # Backend API
+  backend:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: synapse_backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://synapse:synapse123@postgres:5432/synapse_db
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8004:8004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./api:/app
+    networks:
+      - synapse_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8004 --reload
+
+  # Celery Worker
+  celery:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: synapse_celery
+    environment:
+      DATABASE_URL: postgresql+asyncpg://synapse:synapse123@postgres:5432/synapse_db
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./api:/app
+    networks:
+      - synapse_network
+    command: celery -A app.celery_app worker --loglevel=info -P solo
+
+  # Frontend
+  frontend:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    container_name: synapse_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - synapse_network
+
+# Named volumes
+volumes:
+  postgres_data:
+
+    # Network
+networks:
+  synapse_network:
+    driver: bridge

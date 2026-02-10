@@ -9,7 +9,7 @@ WORKDIR /app
 
 # Install build dependencies for packages that need compilation
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential gcc \
+    build-essential gcc postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -37,7 +37,7 @@ RUN groupadd --system app && useradd --system --gid app app \
 
 USER app
 
-EXPOSE 8000
+EXPOSE 8004
 
-# Run the app with uvicorn; adjust "main:app" if your entrypoint differs - our main is inside app folder 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the app with uvicorn on port 8004
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004"]
