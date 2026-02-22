@@ -18,6 +18,7 @@ const Notes = () => {
     const [editTitle, setEditTitle] = useState('');
     const [editContent, setEditContent] = useState('');
     const [editTags, setEditTags] = useState('');
+    const [analyzingNotes, setAnalyzingNotes] = useState({}); // { noteId: true/false }
 
     useEffect(() => {
         // Only fetch notes if auth is not loading
@@ -112,11 +113,63 @@ const Notes = () => {
         }
     };
 
-    const analyzeNote = (e, id) => {
+    const analyzeNote = (e, noteId) => {
         e.stopPropagation();
-        api.post(`/notes/${id}/analyze`)
-            .then(res => alert(`Task Started! ID: ${res.data.task_id}`))
-            .catch(err => console.error(err));
+
+        // Mark this note as "analyzing"
+        setAnalyzingNotes(prev => ({ ...prev, [noteId]: true }));
+
+        api.post(`/notes/${noteId}/analyze`)
+            .then(res => {
+                const taskId = res.data.task_id;
+
+                // Poll every 2 seconds until task is done
+                const interval = setInterval(async () => {
+                    try {
+                        const statusRes = await api.get(`/tasks/${taskId}/status`);
+                        const { status } = statusRes.data;
+
+                        if (status === 'SUCCESS' || status === 'FAILURE') {
+                            clearInterval(interval);
+                            // Remove from analyzing state
+                            setAnalyzingNotes(prev => {
+                                const next = { ...prev };
+                                delete next[noteId];
+                                return next;
+                            });
+
+                            if (status === 'SUCCESS') {
+                                // Refresh notes to show updated sentiment
+                                fetchNotes();
+                                // If modal is open for this note, refresh selectedNote too
+                                if (selectedNote && selectedNote.id === noteId) {
+                                    const updated = await api.get(`/notes/${noteId}`);
+                                    setSelectedNote(updated.data);
+                                }
+                            } else {
+                                // Task failed — show error to user
+                                const errorMsg = statusRes.data.error || 'Unknown error';
+                                alert(`Analysis failed: ${errorMsg}`);
+                            }
+                        }
+                    } catch (err) {
+                        clearInterval(interval);
+                        setAnalyzingNotes(prev => {
+                            const next = { ...prev };
+                            delete next[noteId];
+                            return next;
+                        });
+                    }
+                }, 2000);
+            })
+            .catch(err => {
+                console.error(err);
+                setAnalyzingNotes(prev => {
+                    const next = { ...prev };
+                    delete next[noteId];
+                    return next;
+                });
+            });
     };
 
     const handleTagClick = (tagName) => {
@@ -212,7 +265,10 @@ const Notes = () => {
                             <div>
                                 <h3>
                                     {note.title}
-                                    {note.sentiment && <span className="badge">{note.sentiment}</span>}
+                                    {analyzingNotes[note.id]
+                                        ? <span className="badge" style={{ background: 'var(--accent)', color: '#fff' }}>⏳ Analyzing...</span>
+                                        : note.sentiment && <span className="badge">{note.sentiment}</span>
+                                    }
                                 </h3>
                                 <div className="tags-container">
                                     {note.tags && note.tags.map(tag => (
@@ -299,7 +355,13 @@ const Notes = () => {
                                 </>
                             ) : (
                                 <>
-                                    <button onClick={(e) => analyzeNote(e, selectedNote.id)} className="btn-secondary">🤖 Analyze</button>
+                                    <button
+                                        onClick={(e) => analyzeNote(e, selectedNote.id)}
+                                        className="btn-secondary"
+                                        disabled={!!analyzingNotes[selectedNote.id]}
+                                    >
+                                        {analyzingNotes[selectedNote.id] ? '⏳ Analyzing...' : '🤖 Analyze'}
+                                    </button>
                                     <button onClick={() => setIsEditing(true)} className="btn-secondary">✏️ Edit</button>
                                     <button onClick={(e) => deleteNote(e, selectedNote.id)} className="btn-danger">🗑️ Delete</button>
                                 </>

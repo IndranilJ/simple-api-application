@@ -16,6 +16,12 @@ async def get_note_service(
 ) -> NoteService:
     return NoteService(session, current_user.id)
 
+# @router.get("/something")
+# async def my_endpoint(
+#     service: SomeService = Depends(get_some_service)  # ← auth happens here
+# ):
+#     return await service.do_something()
+
 @router.post("/notes", response_model=NoteRead)
 async def create_note(
     note: NoteCreate, 
@@ -48,6 +54,8 @@ async def get_note(
     return note
 
 from app.tasks import analyze_note_task
+from app.celery_app import celery_app
+from celery.result import AsyncResult
 
 @router.post("/notes/{note_id}/analyze")
 async def analyze_note(
@@ -66,6 +74,29 @@ async def analyze_note(
     # Trigger the background task
     task = analyze_note_task.delay(note_id)
     return {"message": "Analysis started", "task_id": task.id}
+
+@router.get("/tasks/{task_id}/status")
+async def get_task_status(
+    task_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Poll the status of a background task by its ID."""
+    result = AsyncResult(task_id, app=celery_app)
+
+    response = {
+        "task_id": task_id,
+        "status": result.status,  # PENDING, STARTED, SUCCESS, FAILURE
+        "result": None,
+    }
+
+    if result.ready():              # task is done (SUCCESS or FAILURE)
+        if result.successful():
+            response["result"] = result.result
+        else:
+            response["error"] = str(result.result)
+
+    return response
+
 
 @router.put("/notes/{note_id}", response_model=NoteRead)
 async def update_note(
