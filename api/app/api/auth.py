@@ -2,6 +2,7 @@
 Authentication API endpoints for user registration, login, and token management.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select
 from pydantic import BaseModel, EmailStr
@@ -16,6 +17,9 @@ from app.auth import (
     validate_password_strength,
     get_current_user
 )
+from app.auth.dependencies import security
+from app.auth.redis_client import blacklist_token
+from app.auth.jwt import ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -136,9 +140,14 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
     )
 
 @router.post("/logout")
-async def logout():
+async def logout(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
     """
-    Logout endpoint (token invalidation handled client-side).
-    This endpoint primarily exists for API consistency.
+    Logout endpoint — blacklists the current access token in Redis.
+    Even if the client still holds the token, the server will reject it.
     """
+    token = credentials.credentials
+    # Blacklist for 24h (same as the token's max lifetime)
+    blacklist_token(token, expires_in_seconds=ACCESS_TOKEN_EXPIRE_MINUTES * 60)
     return {"message": "Successfully logged out"}

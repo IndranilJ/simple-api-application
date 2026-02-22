@@ -8,6 +8,7 @@ from sqlmodel import select
 from app.db import get_session
 from app.models.user import User
 from app.auth.jwt import verify_token
+from app.auth.redis_client import is_token_blacklisted
 
 # HTTP Bearer token security
 security = HTTPBearer()
@@ -18,11 +19,19 @@ async def get_current_user(
 ) -> User:
     """
     Dependency to get the current authenticated user from JWT token.
-    Raises 401 if token is invalid or user not found.
+    Raises 401 if token is invalid, blacklisted (logged out), or user not found.
     """
     token = credentials.credentials
-    
-    # Verify token
+
+    # Check if token has been blacklisted (user logged out)
+    if is_token_blacklisted(token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been invalidated. Please log in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Verify token signature and expiry
     token_data = verify_token(token, token_type="access")
     if token_data is None:
         raise HTTPException(
@@ -30,23 +39,24 @@ async def get_current_user(
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Get user from database
     statement = select(User).where(User.id == token_data.user_id)
     result = await session.exec(statement)
     user = result.first()
-    
+
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user"
         )
-    
+
     return user
+
