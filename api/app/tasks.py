@@ -4,16 +4,26 @@ from app.models.note import Note
 import time
 import os
 
-# Get database URL from environment (same as main app)
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://synapse:synapse123@localhost:5432/synapse_db"
-)
-# Use sync driver for Celery (psycopg2 instead of asyncpg)
-SYNC_DATABASE_URL = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
+from urllib.parse import urlparse, parse_qs
 
-# Sync engine for Celery worker
-engine = create_engine(SYNC_DATABASE_URL)
+# Priority: SYNC_DATABASE_URL (Cloud Run worker) → DATABASE_URL → localhost fallback
+_raw = os.getenv(
+    "SYNC_DATABASE_URL",
+    os.getenv("DATABASE_URL", "postgresql://synapse:synapse123@localhost:5432/synapse_db")
+).replace("postgresql+asyncpg://", "postgresql://")
+
+# psycopg2 ignores ?host= query param in the URL.
+# For Cloud SQL Unix sockets we must extract the socket path and pass it via connect_args.
+_parsed = urlparse(_raw)
+_socket_path = parse_qs(_parsed.query).get("host", [None])[0]
+
+if _socket_path:
+    # Cloud SQL socket: strip query string from URL, pass host via connect_args
+    _db_url = f"postgresql+psycopg2://{_parsed.username}:{_parsed.password}@/{_parsed.path.lstrip('/')}"
+    engine = create_engine(_db_url, connect_args={"host": _socket_path})
+else:
+    # Local TCP connection
+    engine = create_engine(_raw)
 
 @celery_app.task
 def analyze_note_task(note_id: int):

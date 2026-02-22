@@ -13,7 +13,12 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the production bundle
+# Accept backend URL as a build argument
+ARG VITE_API_URL=http://localhost:8004
+# Make it available as an environment variable for Vite during build
+ENV VITE_API_URL=$VITE_API_URL
+
+# Build the production bundle (Vite bakes VITE_* env vars into the JS output)
 RUN npm run build
 
 # Stage 2: Serve with Nginx
