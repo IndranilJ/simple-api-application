@@ -26,42 +26,61 @@ class NoteService:
         result = await self.session.exec(statement)
         return result.all()
 
-    async def get_or_create_tag(self, tag_name: str) -> Tag:
-        # Tags are now user-specific
-        statement = select(Tag).where(Tag.name == tag_name, Tag.user_id == self.user_id)
+    async def get_or_create_tags(self, tag_names: List[str]) -> List[Tag]:
+        """
+        Optimized bulk tag retrieval and creation.
+        Solves the N+1 problem by using a single batch query.
+        """
+        if not tag_names:
+            return []
+            
+        # 1. Fetch all existing tags in one query
+        statement = select(Tag).where(
+            Tag.name.in_(tag_names), 
+            Tag.user_id == self.user_id
+        )
         result = await self.session.exec(statement)
-        tag = result.first()
-        if not tag:
-            tag = Tag(name=tag_name, user_id=self.user_id)
-            self.session.add(tag)
-            # Use flush instead of commit to keep the object in session
+        existing_tags = {tag.name: tag for tag in result.all()}
+        
+        # 2. Identify and create missing tags
+        final_tags = []
+        for name in tag_names:
+            if name in existing_tags:
+                final_tags.append(existing_tags[name])
+            else:
+                new_tag = Tag(name=name, user_id=self.user_id)
+                self.session.add(new_tag)
+                final_tags.append(new_tag)
+        
+        # 3. Flush to ensure all new tags have IDs
+        if any(name not in existing_tags for name in tag_names):
             await self.session.flush()
-            # Refresh is safe here because we just flushed
-            await self.session.refresh(tag)
-        return tag
+            
+        return final_tags
 
     async def create_note(self, note_data: NoteCreate) -> Note:
-        # Create Note excluding tags (which are list of strings in input)
+        # Create Note excluding tags
         note_dict = note_data.dict(exclude={"tags"})
         note = Note(**note_dict, user_id=self.user_id)
         
-        # Handle tags
+        # Handle tags efficiently in bulk
         if note_data.tags:
-            for tag_name in note_data.tags:
-                tag = await self.get_or_create_tag(tag_name)
-                note.tags.append(tag)
+            tags = await self.get_or_create_tags(note_data.tags)
+            note.tags = tags
         
         self.session.add(note)
         await self.session.commit()
         await self.session.refresh(note)
-        # Re-fetch with tags to ensure they are loaded for response
-        statement = select(Note).where(Note.id == note.id).options(selectinload(Note.tags))
-        result = await self.session.exec(statement)
-        return result.one()
+        
+        # Re-fetch with tags to ensure response consistency
+        return await self.get_note_by_id(note.id)
 
     async def get_note_by_id(self, note_id: int) -> Optional[Note]:
-        """Get a single note by ID, ensuring it belongs to the user."""
-        statement = select(Note).where(Note.id == note_id, Note.user_id == self.user_id).options(selectinload(Note.tags))
+        """Get a single note by ID with tags eagerly loaded."""
+        statement = select(Note).where(
+            Note.id == note_id, 
+            Note.user_id == self.user_id
+        ).options(selectinload(Note.tags))
         result = await self.session.exec(statement)
         return result.first()
 
@@ -73,34 +92,26 @@ class NoteService:
             return True
         return False
 
-
     async def update_note(self, note_id: int, note_data: NoteCreate) -> Optional[Note]:
         # Fetch note with tags eagerly loaded
-        statement = select(Note).where(Note.id == note_id, Note.user_id == self.user_id).options(selectinload(Note.tags))
-        result = await self.session.exec(statement)
-        note = result.first()
+        note = await self.get_note_by_id(note_id)
         
         if note:
             note.title = note_data.title
             note.content = note_data.content
             
-            # Clear existing tags from relationship (this is sync, but safe before commit)
-            note.tags.clear()
-            
-            # Add new tags using get_or_create
+            # Efficiently sync tags
             if note_data.tags:
-                for tag_name in note_data.tags:
-                    tag = await self.get_or_create_tag(tag_name)
-                    note.tags.append(tag)
+                tags = await self.get_or_create_tags(note_data.tags)
+                note.tags = tags
+            else:
+                note.tags = []
             
-            # Commit once at the end
             self.session.add(note)
             await self.session.commit()
             
-            # Re-fetch to ensure tags are loaded
-            statement_refetch = select(Note).where(Note.id == note_id).options(selectinload(Note.tags))
-            result_refetch = await self.session.exec(statement_refetch)
-            return result_refetch.one()
+            # Refresh to ensure latest state
+            return await self.get_note_by_id(note_id)
             
         return None
 

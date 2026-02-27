@@ -4,16 +4,12 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from typing import AsyncGenerator
 
-# Database configuration from environment variables
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://synapse:synapse123@localhost:5432/synapse_db"
-)
+from app.config import settings
 
-# Create async engine for PostgreSQL
+# Create async engine for PostgreSQL using settings
 engine = create_async_engine(
-    DATABASE_URL,
-    echo=True,  # Set to False in production
+    settings.DATABASE_URL,
+    echo=settings.DEBUG,
     future=True
 )
 

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import '../App.css'; // Reuse existing styles
+import NoteCard from '../components/NoteCard';
+import './NotesDashboard.css'; // New dedicated styles
+import '../App.css';
 
 const Notes = () => {
     const { isLoading: authLoading } = useAuth();
@@ -21,7 +23,6 @@ const Notes = () => {
     const [analyzingNotes, setAnalyzingNotes] = useState({}); // { noteId: true/false }
 
     useEffect(() => {
-        // Only fetch notes if auth is not loading
         if (!authLoading) {
             fetchNotes();
             fetchAllTags();
@@ -94,6 +95,7 @@ const Notes = () => {
             setSelectedNote(response.data);
             setIsEditing(false);
             fetchNotes();
+            fetchAllTags();
         } catch (error) {
             console.error('Error updating note:', error);
         }
@@ -101,7 +103,7 @@ const Notes = () => {
 
     const deleteNote = (e, id) => {
         e.stopPropagation();
-        if (confirm('Are you sure?')) {
+        if (window.confirm('Are you sure you want to delete this memory?')) {
             api.delete(`/notes/${id}`)
                 .then(() => {
                     fetchNotes();
@@ -115,15 +117,11 @@ const Notes = () => {
 
     const analyzeNote = (e, noteId) => {
         e.stopPropagation();
-
-        // Mark this note as "analyzing"
         setAnalyzingNotes(prev => ({ ...prev, [noteId]: true }));
 
         api.post(`/notes/${noteId}/analyze`)
             .then(res => {
                 const taskId = res.data.task_id;
-
-                // Poll every 2 seconds until task is done
                 const interval = setInterval(async () => {
                     try {
                         const statusRes = await api.get(`/tasks/${taskId}/status`);
@@ -131,7 +129,6 @@ const Notes = () => {
 
                         if (status === 'SUCCESS' || status === 'FAILURE') {
                             clearInterval(interval);
-                            // Remove from analyzing state
                             setAnalyzingNotes(prev => {
                                 const next = { ...prev };
                                 delete next[noteId];
@@ -139,15 +136,12 @@ const Notes = () => {
                             });
 
                             if (status === 'SUCCESS') {
-                                // Refresh notes to show updated sentiment
                                 fetchNotes();
-                                // If modal is open for this note, refresh selectedNote too
                                 if (selectedNote && selectedNote.id === noteId) {
                                     const updated = await api.get(`/notes/${noteId}`);
                                     setSelectedNote(updated.data);
                                 }
                             } else {
-                                // Task failed — show error to user
                                 const errorMsg = statusRes.data.error || 'Unknown error';
                                 alert(`Analysis failed: ${errorMsg}`);
                             }
@@ -181,135 +175,156 @@ const Notes = () => {
         setSelectedTag(null);
     };
 
-    // Show loading state while auth is initializing
     if (authLoading) {
         return (
-            <div className="container" style={{ paddingTop: '2rem', textAlign: 'center' }}>
-                <p>Loading...</p>
+            <div className="loading-state">
+                <div className="spinner"></div>
+                <p>Syncing your memories...</p>
             </div>
         );
     }
 
     return (
-        <div className="container" style={{ paddingTop: '2rem' }}>
-            {/* Main Content Grid */}
-            <div className="main-grid">
-                {/* Create Form */}
-                <div className="card create-card">
-                    <h2>✨ New Memory</h2>
-                    <form onSubmit={createNote}>
-                        <input
-                            type="text"
-                            placeholder="Title"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            required
-                        />
-                        <textarea
-                            placeholder="What's on your mind?"
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            required
-                        />
-                        <input
-                            type="text"
-                            placeholder="Tags (comma separated, e.g. work, idea)"
-                            value={tags}
-                            onChange={(e) => setTags(e.target.value)}
-                            style={{ marginBottom: '1rem' }}
-                        />
-                        <div className="btn-group">
-                            <button type="submit" className="btn-primary">Save Note</button>
+        <div className="dashboard-container">
+            <div className="main-content">
+                {/* Header Section */}
+                <header className="dashboard-header animate-in">
+                    <div className="header-brand">
+                        <span className="brand-dot">
+                            <span className="brand-icon-inner">🧬</span>
+                        </span>
+                        <div className="header-meta">
+                            <p className="subtitle">Secure Neural Vault</p>
+                            <h1>Memories</h1>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                </header>
 
-                <div className="search-bar">
-                    <input
-                        type="text"
-                        placeholder="🔍 Search notes..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+                {/* Create Note Form */}
+                <section className="create-section animate-in">
+                    <div className="card-glass create-card-premium">
+                        <div className="card-accent" />
+                        <div className="header-with-icon">
+                            <h2>✨ New Memory</h2>
+                        </div>
+                        <form onSubmit={createNote} className="form-premium">
+                            <input
+                                type="text"
+                                placeholder="Give it a title..."
+                                value={title}
+                                className="input-premium"
+                                onChange={(e) => setTitle(e.target.value)}
+                                required
+                            />
+                            <textarea
+                                placeholder="What's on your mind? Capture the details..."
+                                value={content}
+                                className="textarea-premium"
+                                onChange={(e) => setContent(e.target.value)}
+                                required
+                            />
+                            <div className="form-row">
+                                <input
+                                    type="text"
+                                    placeholder="Tags (comma separated)..."
+                                    value={tags}
+                                    className="input-premium tag-input"
+                                    onChange={(e) => setTags(e.target.value)}
+                                />
+                                <button type="submit" className="btn-primary-premium">Save to Vault</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                {/* Search & Filter */}
+                <section className="search-section-premium animate-in">
+                    <div className="search-bar-premium">
+                        <span className="search-icon">🔍</span>
+                        <input
+                            type="text"
+                            placeholder="Search your memories..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
                     {selectedTag && (
-                        <div className="active-filter">
-                            Filtered by: <span className="tag-pill active">{selectedTag}</span>
-                            <button onClick={clearFilter} className="clear-filter-btn">✕ Clear</button>
+                        <div className="active-filter-premium">
+                            <span className="filter-label">Filtering:</span>
+                            <span className="tag-pill-active">{selectedTag}</span>
+                            <button onClick={clearFilter} className="clear-filter-btn">✕</button>
                         </div>
                     )}
-                </div>
+                </section>
 
                 {/* Tag Cloud */}
                 {allTags.length > 0 && (
-                    <div className="tag-cloud">
-                        <h3>Filter by Tag:</h3>
+                    <section className="tag-cloud-premium animate-in">
+                        <div className="section-header">
+                            <h3>COLLECTIONS</h3>
+                            <div className="header-line"></div>
+                        </div>
                         <div className="tag-cloud-container">
                             {allTags.map(tag => (
                                 <span
                                     key={tag.id}
-                                    className={`tag-pill clickable ${selectedTag === tag.name ? 'active' : ''}`}
+                                    className={`tag-pill-explore ${selectedTag === tag.name ? 'active' : ''}`}
                                     onClick={() => handleTagClick(tag.name)}
                                 >
-                                    {tag.name} <span className="tag-count">({tag.count})</span>
+                                    #{tag.name} <span className="tag-count">{tag.count}</span>
                                 </span>
                             ))}
                         </div>
-                    </div>
+                    </section>
                 )}
 
                 {/* Notes Grid */}
-                <div className="notes-grid">
-                    {notes.length === 0 && <p style={{ color: '#888', gridColumn: '1/-1', textAlign: 'center' }}>No memories found. Create one!</p>}
-                    {notes.map(note => (
-                        <div key={note.id} className="note-card" onClick={() => openNote(note)}>
-                            <div>
-                                <h3>
-                                    {note.title}
-                                    {analyzingNotes[note.id]
-                                        ? <span className="badge" style={{ background: 'var(--accent)', color: '#fff' }}>⏳ Analyzing...</span>
-                                        : note.sentiment && <span className="badge">{note.sentiment}</span>
-                                    }
-                                </h3>
-                                <div className="tags-container">
-                                    {note.tags && note.tags.map(tag => (
-                                        <span
-                                            key={tag.id}
-                                            className="tag-pill clickable"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleTagClick(tag.name);
-                                            }}
-                                        >{tag.name}</span>
-                                    ))}
-                                </div>
-                                <p className="note-content truncated">{note.content}</p>
-                            </div>
+                <section className="notes-grid-premium">
+                    {notes.length === 0 ? (
+                        <div className="empty-state animate-in">
+                            <div className="empty-icon">📔</div>
+                            <h3>No matches found</h3>
+                            <p>Try a different search or create a new memory to get started.</p>
                         </div>
-                    ))}
-                </div>
+                    ) : (
+                        notes.map(note => (
+                            <NoteCard
+                                key={note.id}
+                                note={note}
+                                onOpen={() => openNote(note)}
+                                onTagClick={handleTagClick}
+                                isAnalyzing={!!analyzingNotes[note.id]}
+                            />
+                        ))
+                    )}
+                </section>
             </div>
 
             {/* Modal */}
             {isModalOpen && selectedNote && (
                 <div className="modal-overlay" onClick={closeModal}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                    <div className="modal-content animate-in" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            {isEditing ? (
-                                <div style={{ width: '100%' }}>
+                            <div className="header-content">
+                                {isEditing ? (
                                     <input
                                         type="text"
                                         className="modal-title-input"
                                         value={editTitle}
                                         onChange={(e) => setEditTitle(e.target.value)}
                                     />
-                                </div>
-                            ) : (
-                                <h2>
-                                    {selectedNote.title}
-                                    {selectedNote.sentiment && <span className="badge" style={{ verticalAlign: 'middle', marginLeft: '10px' }}>{selectedNote.sentiment}</span>}
-                                </h2>
-                            )}
-                            <button className="close-btn" onClick={closeModal}>&times;</button>
+                                ) : (
+                                    <div className="modal-title-container">
+                                        <h2>{selectedNote.title}</h2>
+                                        {selectedNote.sentiment && (
+                                            <span className={`badge-sentiment ${selectedNote.sentiment.toLowerCase()}`}>
+                                                {selectedNote.sentiment}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            <button className="close-btn" onClick={closeModal}>✕</button>
                         </div>
 
                         <div className="modal-body">
@@ -323,26 +338,28 @@ const Notes = () => {
                                     <input
                                         type="text"
                                         className="modal-tags-input"
-                                        placeholder="Tags (comma separated)"
+                                        placeholder="Edit tags (comma separated)"
                                         value={editTags}
                                         onChange={(e) => setEditTags(e.target.value)}
                                     />
                                 </>
                             ) : (
                                 <>
-                                    <div className="tags-container" style={{ marginBottom: '1rem' }}>
+                                    <div className="tags-container-modal">
                                         {selectedNote.tags && selectedNote.tags.map(tag => (
                                             <span
                                                 key={tag.id}
-                                                className="tag-pill clickable"
+                                                className="tag-item"
                                                 onClick={() => {
                                                     handleTagClick(tag.name);
                                                     closeModal();
                                                 }}
-                                            >{tag.name}</span>
+                                            >#{tag.name}</span>
                                         ))}
                                     </div>
-                                    <p>{selectedNote.content}</p>
+                                    <div className="note-body-content">
+                                        {selectedNote.content}
+                                    </div>
                                 </>
                             )}
                         </div>
@@ -350,20 +367,20 @@ const Notes = () => {
                         <div className="modal-footer">
                             {isEditing ? (
                                 <>
-                                    <button onClick={updateNote} className="btn-primary">Save Changes</button>
-                                    <button onClick={() => setIsEditing(false)} className="btn-secondary">Cancel</button>
+                                    <button onClick={updateNote} className="btn-primary-premium">Save Changes</button>
+                                    <button onClick={() => setIsEditing(false)} className="btn-secondary-premium">Cancel</button>
                                 </>
                             ) : (
                                 <>
                                     <button
                                         onClick={(e) => analyzeNote(e, selectedNote.id)}
-                                        className="btn-secondary"
+                                        className="btn-secondary-premium"
                                         disabled={!!analyzingNotes[selectedNote.id]}
                                     >
-                                        {analyzingNotes[selectedNote.id] ? '⏳ Analyzing...' : '🤖 Analyze'}
+                                        {analyzingNotes[selectedNote.id] ? '⏳ Analyzing...' : '🤖 AI Analysis'}
                                     </button>
-                                    <button onClick={() => setIsEditing(true)} className="btn-secondary">✏️ Edit</button>
-                                    <button onClick={(e) => deleteNote(e, selectedNote.id)} className="btn-danger">🗑️ Delete</button>
+                                    <button onClick={() => setIsEditing(true)} className="btn-secondary-premium">✏️ Edit</button>
+                                    <button onClick={(e) => deleteNote(e, selectedNote.id)} className="btn-danger-premium">🗑️ Delete</button>
                                 </>
                             )}
                         </div>

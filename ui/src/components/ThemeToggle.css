@@ -1,23 +1,87 @@
-/* Theme Toggle Button */
-.theme-toggle-button {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
-    padding: 0.5rem 0.75rem;
+/* Premium Theme Toggle Animations */
+
+.theme-toggle-premium {
+    position: relative;
+    width: 64px;
+    height: 32px;
+    padding: 0;
+    background: var(--bg-surface-solid);
+    border: 1px solid var(--border-color);
+    border-radius: 50px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: var(--shadow-sm);
+}
+
+.theme-toggle-premium:hover {
+    border-color: var(--primary);
+    box-shadow: 0 0 15px var(--primary-glow);
+    transform: translateY(-2px);
+}
+
+.sun-moon-canvas {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.icon-wrapper {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    left: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: var(--primary);
+    color: var(--btn-primary-text);
+    border-radius: 50%;
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    box-shadow: 0 0 10px var(--primary-glow);
 }
 
-.theme-toggle-button:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
-    transform: translateY(-1px);
+/* Light Mode State */
+.theme-toggle-premium.light .icon-wrapper {
+    left: calc(100% - 28px);
+    background: var(--sun-color);
+    color: var(--text-main);
+    box-shadow: 0 0 15px var(--sun-glow);
 }
 
-.theme-toggle-button .theme-icon {
-    font-size: 1.25rem;
-    display: block;
+.sun-icon,
+.moon-icon {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    transition: all 0.4s ease;
+}
+
+/* Visibility Logic */
+.theme-toggle-premium.dark .sun-icon {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0);
+}
+
+.theme-toggle-premium.dark .moon-icon {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+}
+
+.theme-toggle-premium.light .sun-icon {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+}
+
+.theme-toggle-premium.light .moon-icon {
+    opacity: 0;
+    transform: rotate(90deg) scale(0);
+}
+
+/* Background Color Shifts */
+.theme-toggle-premium.light {
+    background: var(--toggle-bg-light);
+    border-color: var(--toggle-border-light);
 }

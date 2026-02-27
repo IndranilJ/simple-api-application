@@ -1,54 +1,61 @@
 from app.celery_app import celery_app
 from sqlmodel import Session, create_engine, select
 from app.models.note import Note
+from app.config import settings
 import time
-import os
+import logging
 
-from urllib.parse import urlparse, parse_qs
+# Configure Logging
+logger = logging.getLogger(__name__)
 
-# Priority: SYNC_DATABASE_URL (Cloud Run worker) → DATABASE_URL → localhost fallback
-_raw = os.getenv(
-    "SYNC_DATABASE_URL",
-    os.getenv("DATABASE_URL", "postgresql://synapse:synapse123@localhost:5432/synapse_db")
-).replace("postgresql+asyncpg://", "postgresql://")
+# Create Synchronous Engine for Celery tasks using setting utilities
+engine = create_engine(settings.SYNC_DATABASE_URL_READY)
 
-# psycopg2 ignores ?host= query param in the URL.
-# For Cloud SQL Unix sockets we must extract the socket path and pass it via connect_args.
-_parsed = urlparse(_raw)
-_socket_path = parse_qs(_parsed.query).get("host", [None])[0]
-
-if _socket_path:
-    # Cloud SQL socket: strip query string from URL, pass host via connect_args
-    _db_url = f"postgresql+psycopg2://{_parsed.username}:{_parsed.password}@/{_parsed.path.lstrip('/')}"
-    engine = create_engine(_db_url, connect_args={"host": _socket_path})
-else:
-    # Local TCP connection
-    engine = create_engine(_raw)
-
-@celery_app.task
-def analyze_note_task(note_id: int):
+@celery_app.task(bind=True, max_retries=3)
+def analyze_note_task(self, note_id: int):
     """
     Simulates a heavy AI analysis task and saves the result.
+    Standardizes on Positive, Negative, or Neutral labels.
     """
-    print(f"Starting analysis for note {note_id}...")
-    time.sleep(5)  # Simulate processing
+    logger.info(f"Starting analysis for note {note_id}...")
+    time.sleep(3)  # Slightly faster simulation
     
-    # Simple logic: bigger notes are "Insightful", short ones are "Brief"
-    sentiment = "Insightful"
+    # Keyword Scoring Engine
+    pos_keywords = {"good", "great", "awesome", "success", "happy", "fixed", "resolved", "working", "amazing", "love"}
+    neg_keywords = {"bad", "issue", "bug", "error", "failing", "broken", "worst", "terrible", "problem", "broken"}
     
-    # Write to DB
-    with Session(engine) as session:
-        note = session.get(Note, note_id)
-        if note:
-            # Analyze content length for variety
-            if len(note.content) < 20:
-                sentiment = "Brief"
-            
-            note.sentiment = sentiment
-            session.add(note)
-            session.commit()
-            print(f"Updated note {note_id} with sentiment: {sentiment}")
-        else:
-            print(f"Note {note_id} not found!")
+    sentiment = "Neutral"
+    
+    try:
+        # Write to DB
+        with Session(engine) as session:
+            note = session.get(Note, note_id)
+            if note:
+                # Score the content
+                content_lower = note.content.lower()
+                score = 0
+                
+                for word in pos_keywords:
+                    if word in content_lower:
+                        score += 1
+                for word in neg_keywords:
+                    if word in content_lower:
+                        score -= 1
+                
+                if score > 0:
+                    sentiment = "Positive"
+                elif score < 0:
+                    sentiment = "Negative"
+                
+                note.sentiment = sentiment
+                session.add(note)
+                session.commit()
+                logger.info(f"Updated note {note_id} with sentiment: {sentiment} (Score: {score})")
+            else:
+                logger.warning(f"Note {note_id} not found!")
+    except Exception as exc:
+        logger.error(f"Error analyzing note {note_id}: {exc}")
+        # Auto-retry with exponential backoff if DB connection fails
+        raise self.retry(exc=exc, countdown=2 ** self.request.retries)
             
     return sentiment

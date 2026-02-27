@@ -2,13 +2,11 @@
 Redis client for token blacklisting.
 Used to invalidate JWT tokens on logout.
 """
-import os
+from app.config import settings
 import redis
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-
-# Synchronous Redis client (for use in auth utilities)
-redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+# Synchronous Redis client using centralized settings
+redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
 
 
 def blacklist_token(token: str, expires_in_seconds: int) -> None:

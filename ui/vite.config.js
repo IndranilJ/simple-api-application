@@ -6,15 +6,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // Proxy all API routes to backend
-      '/notes': {
-        target: 'http://127.0.0.1:8004',
-        changeOrigin: true,
-      },
-      '/tags': {
-        target: 'http://127.0.0.1:8004',
-        changeOrigin: true,
-      },
+      '/notes': { target: 'http://127.0.0.1:8004', changeOrigin: true },
+      '/tags': { target: 'http://127.0.0.1:8004', changeOrigin: true },
+      '/auth': { target: 'http://127.0.0.1:8004', changeOrigin: true },
+      '/tasks': { target: 'http://127.0.0.1:8004', changeOrigin: true },
     }
   }
 })

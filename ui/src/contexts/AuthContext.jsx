@@ -33,8 +33,7 @@ export const AuthProvider = ({ children }) => {
                     // Try to fetch current user to validate token
                     try {
                         const userData = await authService.getCurrentUser();
-                        setUser(userData);
-                        setIsAuthenticated(true);
+                        setUser(userData); setIsAuthenticated(true);
 
                         // Update stored user data
                         localStorage.setItem('user', JSON.stringify(userData));

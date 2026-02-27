@@ -7,6 +7,7 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Notes from './pages/Notes';
+import BackgroundSystem from './components/BackgroundSystem';
 import './App.css';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
       <AuthProvider>
         <Router>
           <div className="app">
+            <BackgroundSystem />
             {/* Navigation Bar */}
             <Navbar />
 

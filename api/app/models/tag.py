@@ -19,3 +19,4 @@ class Tag(TagBase, table=True):
 
 class TagRead(TagBase):
     id: int
+    user_id: int

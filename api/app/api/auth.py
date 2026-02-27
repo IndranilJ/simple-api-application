@@ -19,7 +19,8 @@ from app.auth import (
 )
 from app.auth.dependencies import security
 from app.auth.redis_client import blacklist_token
-from app.auth.jwt import ACCESS_TOKEN_EXPIRE_MINUTES
+from app.config import settings
+from app.auth.jwt import TokenData
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -148,6 +149,6 @@ async def logout(
     Even if the client still holds the token, the server will reject it.
     """
     token = credentials.credentials
-    # Blacklist for 24h (same as the token's max lifetime)
-    blacklist_token(token, expires_in_seconds=ACCESS_TOKEN_EXPIRE_MINUTES * 60)
+    # Blacklist for the same lifetime as the access token
+    blacklist_token(token, expires_in_seconds=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60)
     return {"message": "Successfully logged out"}
