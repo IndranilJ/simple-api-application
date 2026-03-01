@@ -13,7 +13,7 @@ variables:
   TF_IN_AUTOMATION: 'true'
   TF_INPUT: 'false'
   PROJECT_ID: 'test-sample-api-479708'
-  REGION: 'asia-south1'
+  REGION: 'us-central1'
 
 steps:
 - task: DownloadSecureFile@1

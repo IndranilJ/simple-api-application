@@ -14,7 +14,7 @@ export const authService = {
      * @returns {Promise<{access_token, refresh_token, token_type}>}
      */
     async register(email, password, name) {
-        const response = await api.post('/auth/register', {
+        const response = await api.post('auth/register', {
             email,
             password,
             name,
@@ -29,7 +29,7 @@ export const authService = {
      * @returns {Promise<{access_token, refresh_token, token_type}>}
      */
     async login(email, password) {
-        const response = await api.post('/auth/login', {
+        const response = await api.post('auth/login', {
             email,
             password,
         });
@@ -42,7 +42,7 @@ export const authService = {
      */
     async logout() {
         try {
-            await api.post('/auth/logout');
+            await api.post('auth/logout');
         } catch (error) {
             // Even if logout fails on server, we still clear local tokens
             console.error('Logout error:', error);
@@ -54,7 +54,7 @@ export const authService = {
      * @returns {Promise<{id, email, name, is_active}>}
      */
     async getCurrentUser() {
-        const response = await api.get('/auth/me');
+        const response = await api.get('auth/me');
         return response.data;
     },
 
@@ -64,7 +64,7 @@ export const authService = {
      * @returns {Promise<{access_token, refresh_token, token_type}>}
      */
     async refreshToken(refreshToken) {
-        const response = await api.post('/auth/refresh', {
+        const response = await api.post('auth/refresh', {
             refresh_token: refreshToken,
         });
         return response.data;

@@ -74,19 +74,19 @@ gcloud services enable run.googleapis.com artifactregistry.googleapis.com
 ```bash
 gcloud artifacts repositories create hello-api-repo \
   --repository-format=docker \
-  --location=asia-south1 \
+  --location=us-central1 \
   --description="Docker repo for Hello API"
 ```
 ### 3. Build & push image
 ```bash
-docker build -t asia-south1-docker.pkg.dev/<PROJECT_ID>/hello-api-repo/hello-api:latest .
-docker push asia-south1-docker.pkg.dev/<PROJECT_ID>/hello-api-repo/hello-api:latest
+docker build -t us-central1-docker.pkg.dev/<PROJECT_ID>/hello-api-repo/hello-api:latest .
+docker push us-central1-docker.pkg.dev/<PROJECT_ID>/hello-api-repo/hello-api:latest
 ```
 ### 4. Deploy to Cloud Run
 ```bash
 gcloud run deploy hello-api \
-  --image asia-south1-docker.pkg.dev/<PROJECT_ID>/hello-api-repo/hello-api:latest \
-  --region asia-south1 \
+  --image us-central1-docker.pkg.dev/<PROJECT_ID>/hello-api-repo/hello-api:latest \
+  --region us-central1 \
   --allow-unauthenticated
 ```
 ### 5. Test deployed service

@@ -12,7 +12,7 @@ pool:
 
 variables:
   PROJECT_ID: 'test-sample-api-479708'
-  REGION: 'asia-south1'
+  REGION: 'us-central1'
   REPO: 'hello-api-repo'
   SERVICE: 'hello-api'
   IMAGE: '$(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(REPO)/$(SERVICE):$(Build.BuildId)'

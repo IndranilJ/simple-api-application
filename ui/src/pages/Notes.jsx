@@ -34,7 +34,7 @@ const Notes = () => {
             const params = {};
             if (searchQuery) params.q = searchQuery;
             if (selectedTag) params.tag = selectedTag;
-            const response = await api.get('/notes', { params });
+            const response = await api.get('notes', { params });
             setNotes(response.data);
         } catch (error) {
             console.error('Error fetching notes:', error);
@@ -43,7 +43,7 @@ const Notes = () => {
 
     const fetchAllTags = async () => {
         try {
-            const response = await api.get('/tags');
+            const response = await api.get('tags');
             setAllTags(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error('Error fetching tags:', error);
@@ -55,7 +55,7 @@ const Notes = () => {
         e.preventDefault();
         try {
             const tagsList = tags.split(',').map(t => t.trim()).filter(t => t);
-            await api.post('/notes', { title, content, tags: tagsList });
+            await api.post('notes', { title, content, tags: tagsList });
             setTitle('');
             setContent('');
             setTags('');
@@ -87,7 +87,7 @@ const Notes = () => {
         if (!selectedNote) return;
         try {
             const tagsList = editTags.split(',').map(t => t.trim()).filter(t => t);
-            const response = await api.put(`/notes/${selectedNote.id}`, {
+            const response = await api.put(`notes/${selectedNote.id}`, {
                 title: editTitle,
                 content: editContent,
                 tags: tagsList
@@ -104,7 +104,7 @@ const Notes = () => {
     const deleteNote = (e, id) => {
         e.stopPropagation();
         if (window.confirm('Are you sure you want to delete this memory?')) {
-            api.delete(`/notes/${id}`)
+            api.delete(`notes/${id}`)
                 .then(() => {
                     fetchNotes();
                     if (selectedNote && selectedNote.id === id) {
@@ -119,12 +119,12 @@ const Notes = () => {
         e.stopPropagation();
         setAnalyzingNotes(prev => ({ ...prev, [noteId]: true }));
 
-        api.post(`/notes/${noteId}/analyze`)
+        api.post(`notes/${noteId}/analyze`)
             .then(res => {
                 const taskId = res.data.task_id;
                 const interval = setInterval(async () => {
                     try {
-                        const statusRes = await api.get(`/tasks/${taskId}/status`);
+                        const statusRes = await api.get(`tasks/${taskId}/status`);
                         const { status } = statusRes.data;
 
                         if (status === 'SUCCESS' || status === 'FAILURE') {
@@ -138,7 +138,7 @@ const Notes = () => {
                             if (status === 'SUCCESS') {
                                 fetchNotes();
                                 if (selectedNote && selectedNote.id === noteId) {
-                                    const updated = await api.get(`/notes/${noteId}`);
+                                    const updated = await api.get(`notes/${noteId}`);
                                     setSelectedNote(updated.data);
                                 }
                             } else {

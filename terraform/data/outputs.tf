@@ -1,0 +1,9 @@
+output "db_instance_name"    { value = module.cloud_sql.instance_name }
+output "db_name"             { value = module.cloud_sql.db_name }
+output "db_private_ip"       { value = module.cloud_sql.private_ip }
+output "sql_sa_email"        { value = module.cloud_sql.sa_email }
+output "redis_host"          { value = module.redis.host }
+output "redis_port"          { value = module.redis.port }
+output "secret_db_url_id"    { value = module.secret_db_url.secret_id }
+output "secret_redis_url_id" { value = module.secret_redis_url.secret_id }
+output "secret_jwt_id"       { value = module.secret_jwt.secret_id }
